@@ -3,12 +3,11 @@
 include '../Koneksi.php';
 
 // 1. Ambil Data Transaksi dari Database (Urut dari yang terbaru)
-// Kita pakai TRY-CATCH biar kalau tabel belum ada, gak langsung error blank
 try {
     $query = $conn->query("SELECT * FROM orders ORDER BY order_date DESC");
     $orders = $query->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    $orders = []; // Kalau error, anggap kosong dulu
+    $orders = []; 
 }
 
 // 2. Fitur Update Status (Saat tombol 'Proses' diklik)
@@ -88,7 +87,12 @@ if (isset($_GET['terima'])) {
                     <?php if(count($orders) > 0): ?>
                         <?php foreach($orders as $o): ?>
                         <tr class="hover:bg-gray-50 transition">
-                            <td class="py-4 px-6 font-mono text-gray-400">#<?= $o['id'] ?></td>
+                            
+                            <!-- BAGIAN INI YANG DIUBAH BIAR JADI ORD-007 -->
+                            <td class="py-4 px-6 font-mono text-gray-400">
+                                ORD-<?= str_pad($o['id'], 3, '0', STR_PAD_LEFT) ?>
+                            </td>
+
                             <td class="py-4 px-6 font-bold text-gray-800"><?= htmlspecialchars($o['customer_name']) ?></td>
                             <td class="py-4 px-6 font-mono text-[#C69C6D] font-bold">Rp <?= number_format($o['total_price'], 0, ',', '.') ?></td>
                             <td class="py-4 px-6 text-gray-500"><?= $o['order_date'] ?></td>

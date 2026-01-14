@@ -6,20 +6,30 @@ if (isset($_POST['simpan'])) {
     $name  = $_POST['name'];
     $price = $_POST['price'];
     $desc  = $_POST['description'];
-    $kategori = $_POST['category']; // <--- Ini yang menangkap pilihan Black/White
+    $kategori = $_POST['category']; 
     
-    // Upload Gambar
-    $fotoName = $_FILES['foto']['name'];
-    $fotoTmp  = $_FILES['foto']['tmp_name'];
+    // --- BAGIAN UPLOAD GAMBAR ---
+    $fotoName = $_FILES['foto']['name']; // Nama file asli
+    $fotoTmp  = $_FILES['foto']['tmp_name']; // Lokasi sementara
     $newFotoName = null;
     
     if(!empty($fotoName)){
+        // Bikin nama unik biar gak bentrok (pake waktu)
         $newFotoName = time() . '_' . $fotoName;
-        move_uploaded_file($fotoTmp, '../../uploads/' . $newFotoName);
+        
+        // Pindahkan dari folder sementara ke folder uploads
+        // Path '../../uploads/' artinya mundur 2 folder (keluar dari menu -> keluar dari admin -> masuk uploads)
+        $uploadPath = '../../uploads/' . $newFotoName;
+        
+        if (move_uploaded_file($fotoTmp, $uploadPath)) {
+            // Berhasil upload
+        } else {
+            echo "<script>alert('Gagal upload gambar! Cek permission folder.');</script>";
+        }
     }
+    // ---------------------------
 
     try {
-        // Simpan ke database
         $sql = "INSERT INTO products (name, price, description, image, category) VALUES (:name, :price, :desc, :img, :kat)";
         $stmt = $conn->prepare($sql);
         $data = [
@@ -32,7 +42,7 @@ if (isset($_POST['simpan'])) {
         $stmt->execute($data);
         echo "<script>alert('Menu Berhasil Ditambah!'); window.location='index.php';</script>";
     } catch (Exception $e) {
-        echo "<script>alert('Gagal: " . $e->getMessage() . "');</script>";
+        echo "<script>alert('Gagal Database: " . $e->getMessage() . "');</script>";
     }
 }
 ?>
@@ -44,16 +54,13 @@ if (isset($_POST['simpan'])) {
     <title>Tambah Menu</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <style> body { font-family: 'Inter', sans-serif; } </style>
 </head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
 
     <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-lg border border-gray-100">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-gray-800">Tambah Menu Baru</h2>
-            <a href="index.php" class="text-gray-400 hover:text-gray-600">✕</a>
-        </div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">Tambah Menu Baru</h2>
 
+        <!-- WAJIB ADA: enctype="multipart/form-data" -->
         <form method="POST" enctype="multipart/form-data" class="space-y-4">
             
             <div>
@@ -61,12 +68,11 @@ if (isset($_POST['simpan'])) {
                 <input type="text" name="name" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-black outline-none">
             </div>
 
-            <!-- INI DIA BAGIAN DROPDOWN PILIHANNYA -->
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1">Pilih Kategori</label>
                 <select name="category" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-black outline-none bg-white">
-                    <option value="Black Series">☕ Black Series (Hitam)</option>
-                    <option value="White Series">🥛 White Series (Susu)</option>
+                    <option value="Black Series">☕ Black Series</option>
+                    <option value="White Series">🥛 White Series</option>
                 </select>
             </div>
 

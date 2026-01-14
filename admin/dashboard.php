@@ -8,18 +8,23 @@ if (file_exists('Koneksi.php')) {
     die("Error: File Koneksi.php tidak ditemukan!");
 }
 
-$totalMenu = 0;
-$totalUser = 1;
-$omset = 0;
-$totalTransaksi = 0;
+// ... (LOGIC PHP SAMA SEPERTI SEBELUMNYA, TIDAK DIUBAH) ...
+$totalMenu = 0; $totalTransaksi = 0; $omsetHariIni = 0; $totalPending = 0; 
+$labelGrafik = []; $dataGrafik = [];
 
 if (isset($conn)) {
     try {
         $totalMenu = $conn->query("SELECT COUNT(*) FROM products")->fetchColumn();
-        $cekTabel = $conn->query("SHOW TABLES LIKE 'orders'")->rowCount();
-        if ($cekTabel > 0) {
-            $omset = $conn->query("SELECT SUM(total_price) FROM orders WHERE status = 'success'")->fetchColumn() ?: 0;
-            $totalTransaksi = $conn->query("SELECT COUNT(*) FROM orders")->fetchColumn();
+        $totalTransaksi = $conn->query("SELECT COUNT(*) FROM orders")->fetchColumn();
+        $sqlToday = "SELECT SUM(total_price) FROM orders WHERE status = 'success' AND DATE(order_date) = CURDATE()";
+        $omsetHariIni = $conn->query($sqlToday)->fetchColumn() ?: 0;
+        $totalPending = $conn->query("SELECT COUNT(*) FROM orders WHERE status = 'pending'")->fetchColumn();
+
+        $sqlGrafik = "SELECT DATE(order_date) as tgl, SUM(total_price) as total FROM orders WHERE status = 'success' GROUP BY DATE(order_date) ORDER BY tgl ASC LIMIT 7";
+        $stmtGrafik = $conn->query($sqlGrafik);
+        while ($row = $stmtGrafik->fetch(PDO::FETCH_ASSOC)) {
+            $labelGrafik[] = date('d/M', strtotime($row['tgl'])); 
+            $dataGrafik[] = $row['total'];
         }
     } catch (Exception $e) {}
 }
@@ -29,65 +34,182 @@ if (isset($conn)) {
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Home</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <title>Dashboard Owner</title>
+    <!-- Font Plus Jakarta Sans (Lebih Modern dari Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <style> body { font-family: 'Inter', sans-serif; } </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style> 
+        body { font-family: 'Plus+Jakarta Sans', sans-serif; background-color: #F8FAFC; } 
+        /* Hide Scrollbar */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
 </head>
-<body class="bg-gray-50 text-gray-800 h-screen flex overflow-hidden">
+<body class="text-slate-800 h-screen flex overflow-hidden">
 
-    <!-- SIDEBAR -->
-    <aside class="w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm">
-        <div class="h-20 flex items-center px-8 border-b border-gray-100">
-            <h1 class="text-xl font-bold tracking-tight text-gray-800">COFFEE<span class="text-amber-600">ROOM</span></h1>
+    <!-- SIDEBAR (Modern Style) -->
+    <aside class="w-72 bg-white m-4 rounded-3xl shadow-xl flex flex-col hidden md:flex border border-slate-100">
+        <div class="h-24 flex items-center justify-center border-b border-dashed border-slate-200">
+            <h1 class="text-2xl font-extrabold tracking-tight text-slate-800">COFFEE<span class="text-amber-600">ROOM.</span></h1>
         </div>
 
-        <nav class="flex-1 px-4 py-6 space-y-2">
-            <!-- Home -->
-            <a href="dashboard.php" class="flex items-center px-4 py-3 bg-amber-50 text-amber-700 rounded-lg transition">
+        <nav class="flex-1 px-6 py-8 space-y-4">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest px-2">Menu Utama</p>
+            
+            <!-- Home (Active) -->
+            <a href="dashboard.php" class="flex items-center px-4 py-3.5 bg-amber-500 text-white rounded-2xl shadow-lg shadow-amber-200 transition-all transform hover:scale-[1.02]">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                <span class="font-bold">Home</span>
+                <span class="font-bold">Overview</span>
             </a>
 
-            <!-- Products -->
-            <a href="menu/index.php" class="flex items-center px-4 py-3 text-gray-500 hover:bg-gray-50 hover:text-amber-600 rounded-lg transition">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                <span class="font-medium">Products</span>
+            <a href="menu/index.php" class="flex items-center px-4 py-3 text-slate-500 hover:bg-slate-50 hover:text-amber-600 rounded-2xl transition-all group">
+                <svg class="w-5 h-5 mr-3 group-hover:scale-110 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                <span class="font-semibold">Produk</span>
             </a>
 
-            <!-- Transaksi (LINK SUDAH DIPERBAIKI) -->
-            <a href="transaksi/trindex.php" class="flex items-center px-4 py-3 text-gray-500 hover:bg-gray-50 hover:text-amber-600 rounded-lg transition">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                <span class="font-medium">Transaksi</span>
+            <a href="transaksi/trindex.php" class="flex items-center justify-between px-4 py-3 text-slate-500 hover:bg-slate-50 hover:text-amber-600 rounded-2xl transition-all group">
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 mr-3 group-hover:scale-110 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    <span class="font-semibold">Transaksi</span>
+                </div>
+                <?php if($totalPending > 0): ?>
+                    <span class="bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md animate-bounce">
+                        <?= $totalPending ?>
+                    </span>
+                <?php endif; ?>
             </a>
         </nav>
-        
-        <div class="p-4 border-t border-gray-100">
-            <a href="logout.php" class="flex items-center text-sm text-gray-500 hover:text-red-600 transition">
+
+        <div class="p-6">
+            <a href="logout.php" class="flex items-center justify-center w-full py-3 text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-2xl transition">
                 Logout
             </a>
         </div>
     </aside>
 
-    <!-- KONTEN -->
-    <main class="flex-1 overflow-y-auto p-8">
-        <h2 class="text-3xl font-bold text-gray-800 mb-6">Dashboard Overview</h2>
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 overflow-y-auto p-4 md:p-8">
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-green-100 border-l-4 border-l-green-500">
-                <p class="text-gray-500 text-sm">Total Omset</p>
-                <h3 class="text-2xl font-bold text-gray-900">Rp <?= number_format($omset, 0, ',', '.') ?></h3>
+        <!-- HEADER -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-10 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+            <div>
+                <h2 class="text-3xl font-bold text-slate-800">Halo, Habib! 👋</h2>
+                <p class="text-slate-400 mt-1">Ini ringkasan bisnismu hari ini.</p>
             </div>
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-blue-100 border-l-4 border-l-blue-500">
-                <p class="text-gray-500 text-sm">Total Transaksi</p>
-                <h3 class="text-2xl font-bold text-gray-900"><?= $totalTransaksi ?> Pesanan</h3>
+            <div class="mt-4 md:mt-0 text-right">
+                <div id="hariTanggal" class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1"></div>
+                <div id="jamDigital" class="text-4xl font-mono font-bold text-amber-500"></div>
             </div>
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-amber-100 border-l-4 border-l-amber-500">
-                <p class="text-gray-500 text-sm">Total Menu</p>
-                <h3 class="text-2xl font-bold text-gray-900"><?= $totalMenu ?> Items</h3>
+        </header>
+
+        <!-- STATS CARDS -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            
+            <!-- Card 1: Omset -->
+            <div class="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50 hover:border-amber-100 transition duration-300 group">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-amber-50 text-amber-500 rounded-2xl group-hover:bg-amber-500 group-hover:text-white transition">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <span class="text-xs font-bold text-green-500 bg-green-50 px-2 py-1 rounded-lg">Hari Ini</span>
+                </div>
+                <h3 class="text-4xl font-bold text-slate-800 mb-1">Rp <?= number_format($omsetHariIni, 0, ',', '.') ?></h3>
+                <p class="text-slate-400 text-sm font-medium">Total Pemasukan</p>
+            </div>
+
+            <!-- Card 2: Transaksi -->
+            <div class="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50 hover:border-blue-100 transition duration-300 group">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-blue-50 text-blue-500 rounded-2xl group-hover:bg-blue-500 group-hover:text-white transition">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                    </div>
+                </div>
+                <h3 class="text-4xl font-bold text-slate-800 mb-1"><?= $totalTransaksi ?></h3>
+                <p class="text-slate-400 text-sm font-medium">Total Pesanan Masuk</p>
+            </div>
+
+            <!-- Card 3: Menu -->
+            <div class="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50 hover:border-purple-100 transition duration-300 group">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-purple-50 text-purple-500 rounded-2xl group-hover:bg-purple-500 group-hover:text-white transition">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </div>
+                </div>
+                <h3 class="text-4xl font-bold text-slate-800 mb-1"><?= $totalMenu ?></h3>
+                <p class="text-slate-400 text-sm font-medium">Varian Menu</p>
+            </div>
+
+        </div>
+
+        <!-- GRAFIK -->
+        <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-slate-800">Analisis Penjualan</h3>
+                <select class="text-sm border-none bg-slate-50 rounded-lg px-3 py-1 text-slate-500 font-bold focus:ring-0">
+                    <option>7 Hari Terakhir</option>
+                </select>
+            </div>
+            <div class="relative h-80 w-full">
+                <canvas id="salesChart"></canvas>
             </div>
         </div>
+
     </main>
+
+    <!-- Script Jam & Grafik -->
+    <script>
+        // JAM DIGITAL
+        function updateWaktu() {
+            const now = new Date();
+            document.getElementById('hariTanggal').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('jamDigital').innerText = now.toLocaleTimeString('id-ID', { hour12: false });
+        }
+        setInterval(updateWaktu, 1000); updateWaktu();
+
+        // GRAFIK
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        
+        // Bikin Gradient Warna biar Keren
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(245, 158, 11, 0.2)'); // Amber
+        gradient.addColorStop(1, 'rgba(245, 158, 11, 0)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: <?= json_encode($labelGrafik) ?>,
+                datasets: [{
+                    label: 'Income',
+                    data: <?= json_encode($dataGrafik) ?>,
+                    borderColor: '#f59e0b', // Amber-500
+                    backgroundColor: gradient,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#f59e0b',
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { borderDash: [4, 4], color: '#f1f5f9' },
+                        ticks: { font: { family: "'Plus Jakarta Sans', sans-serif" } }
+                    },
+                    x: { 
+                        grid: { display: false },
+                        ticks: { font: { family: "'Plus Jakarta Sans', sans-serif" } }
+                    }
+                }
+            }
+        });
+    </script>
 
 </body>
 </html>

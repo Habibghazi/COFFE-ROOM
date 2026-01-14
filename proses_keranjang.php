@@ -2,49 +2,50 @@
 // proses_keranjang.php
 session_start();
 
-// 1. Cek apakah ada data yang dikirim?
 if (isset($_POST['add_to_cart'])) {
     
     $id_produk = $_POST['id_produk'];
     $nama      = $_POST['nama_produk'];
     $harga     = $_POST['harga'];
-    $suhu      = $_POST['suhu']; // Hot atau Ice
+    $suhu      = $_POST['suhu'];
     
-    // 2. Siapkan array item
+    // TANGKAP QTY (Kalau tidak ada, default 1)
+    $qty = isset($_POST['qty']) ? (int)$_POST['qty'] : 1;
+    if ($qty < 1) $qty = 1;
+
+    // Siapkan item
     $item = [
         'id'    => $id_produk,
         'nama'  => $nama,
         'harga' => $harga,
         'suhu'  => $suhu,
-        'qty'   => 1
+        'qty'   => $qty // Pakai jumlah dari inputan
     ];
 
-    // 3. Masukkan ke Session Keranjang
-    // Cek apakah keranjang sudah ada?
+    // Cek Keranjang
     if (!isset($_SESSION['keranjang'])) {
         $_SESSION['keranjang'] = [];
     }
 
-    // Cek apakah barang yang sama persis (ID + Suhu) sudah ada?
+    // Cek apakah barang sudah ada?
     $found = false;
     foreach ($_SESSION['keranjang'] as $key => $val) {
         if ($val['id'] == $id_produk && $val['suhu'] == $suhu) {
-            // Kalau sudah ada, tambahkan jumlahnya (qty) aja
-            $_SESSION['keranjang'][$key]['qty'] += 1;
+            // Kalau sudah ada, tambahkan jumlahnya sesuai input
+            $_SESSION['keranjang'][$key]['qty'] += $qty;
             $found = true;
             break;
         }
     }
 
-    // Kalau barang baru, masukkan ke antrian
+    // Kalau baru, masukkan
     if (!$found) {
         $_SESSION['keranjang'][] = $item;
     }
 
-    // 4. Balikin user ke halaman menu lagi
-    // Kita pakai script JS biar bisa go back history (tetap di filter yang sama)
+    // Redirect Balik
     echo "<script>
-            alert('✅ Berhasil masuk keranjang: $nama ($suhu)');
+            alert('✅ Berhasil menambah $qty $nama ($suhu) ke keranjang!');
             window.history.back();
           </script>";
 }
