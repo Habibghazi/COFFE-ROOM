@@ -1,6 +1,12 @@
 <?php
 // admin/transaksi/trindex.php
 include '../Koneksi.php';
+session_start();
+// Cek Login & Admin
+if (!isset($_SESSION['is_login']) || $_SESSION['role'] !== 'admin') {
+    header("Location: ../../login.php"); // Mundur 2 langkah ke login utama
+    exit;
+}
 
 try {
     $query = $conn->query("SELECT * FROM orders ORDER BY order_date DESC");
@@ -135,14 +141,22 @@ if (isset($_GET['terima'])) {
                             </td>
 
                             <td class="py-5 px-6 text-right">
-                                <?php if($o['status'] == 'pending'): ?>
-                                    <a href="trindex.php?terima=<?= $o['id'] ?>" onclick="return confirm('Proses pesanan ini?')" 
-                                       class="inline-block bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2 px-4 rounded-xl shadow-lg transition transform hover:-translate-y-0.5">
-                                        Proses
+                                <div class="flex justify-end gap-2">
+                                    <!-- TOMBOL CETAK STRUK (ICON PRINTER) -->
+                                    <a href="cetak_struk.php?id=<?= $o['id'] ?>" target="_blank" 
+                                       class="p-2 bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-800 rounded-lg transition" title="Cetak Struk">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                        </svg>
                                     </a>
-                                <?php else: ?>
-                                    <span class="text-slate-300 text-xs italic font-medium">Completed</span>
-                                <?php endif; ?>
+
+                                    <?php if($o['status'] == 'pending'): ?>
+                                        <a href="trindex.php?terima=<?= $o['id'] ?>" onclick="return confirm('Proses pesanan ini?')" 
+                                           class="inline-block bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2 px-4 rounded-xl shadow-lg transition transform hover:-translate-y-0.5">
+                                            Proses
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                         <?php endforeach; ?>

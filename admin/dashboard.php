@@ -7,6 +7,11 @@ if (file_exists('Koneksi.php')) {
 } else {
     die("Error: File Koneksi.php tidak ditemukan!");
 }
+if (!isset($_SESSION['is_login']) || $_SESSION['role'] !== 'admin') {
+    // Kalau bukan admin, tendang ke halaman login utama
+    header("Location: ../login.php");
+    exit;
+}
 
 // ... (LOGIC PHP SAMA SEPERTI SEBELUMNYA, TIDAK DIUBAH) ...
 $totalMenu = 0; $totalTransaksi = 0; $omsetHariIni = 0; $totalPending = 0; 

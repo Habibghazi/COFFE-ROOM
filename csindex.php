@@ -1,3 +1,14 @@
+<?php
+// csindex.php
+session_start();
+
+// 1. CEK LOGIN: Kalau belum login, lempar ke halaman login
+if (!isset($_SESSION['is_login'])) {
+    header("Location: login.php");
+    exit;
+}
+?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -16,32 +27,42 @@
         .delay-500 { animation-delay: 0.5s; }
     </style>
 </head>
-<body class="bg-black text-white h-screen overflow-hidden"> <!-- overflow-hidden biar gak bisa discroll -->
-<!-- PRELOADER (Animasi Loading) -->
+<body class="bg-black text-white h-screen overflow-hidden"> 
+
+    <!-- PRELOADER (Animasi Loading) -->
     <div id="preloader" class="fixed inset-0 z-[9999] bg-[#0f0f0f] flex items-center justify-center transition-opacity duration-700">
         <div class="text-center">
-            <!-- Ikon Kopi Berdenyut -->
             <div class="text-6xl mb-4 animate-bounce">☕</div>
             <div class="text-[#C69C6D] text-xl font-serif tracking-widest animate-pulse">BREWING...</div>
         </div>
     </div>
 
     <script>
-        // Hilangkan loading setelah halaman selesai dimuat
         window.addEventListener('load', function() {
             const loader = document.getElementById('preloader');
             setTimeout(() => {
-                loader.classList.add('opacity-0'); // Bikin transparan
+                loader.classList.add('opacity-0');
                 setTimeout(() => {
-                    loader.style.display = 'none'; // Hilangkan dari layar
-                }, 700); // Tunggu transisi selesai (0.7 detik)
-            }, 500); // Tahan loading sebentar (0.5 detik) biar kelihatan
+                    loader.style.display = 'none';
+                }, 700);
+            }, 500);
         });
     </script>
-    <!-- NAVBAR -->
+
+    <!-- NAVBAR (SUDAH DIUPDATE) -->
     <nav class="absolute top-0 w-full p-6 flex justify-between items-center z-50">
         <div class="text-2xl font-bold tracking-widest text-[#C69C6D]">COFFEE ROOM</div>
-        <a href="admin/dashboard.php" class="text-xs text-gray-400 hover:text-white border border-gray-600 px-4 py-2 rounded-full hover:border-white transition">Admin Area</a>
+        
+        <!-- Info User & Logout -->
+        <div class="flex items-center gap-4 bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+            <span class="text-sm text-gray-300 font-medium">
+                Halo, <span class="text-white font-bold"><?= $_SESSION['user_name'] ?? 'User' ?></span>
+            </span>
+            <div class="w-px h-4 bg-gray-600"></div> <!-- Garis pemisah -->
+            <a href="logout.php" class="text-xs text-red-400 hover:text-white transition font-bold uppercase tracking-wider">
+                Logout
+            </a>
+        </div>
     </nav>
 
     <!-- HERO SECTION FULL SCREEN -->
@@ -71,7 +92,7 @@
                     <h3 class="text-2xl font-semibold mb-4 text-[#C69C6D]">Mulai Pesananmu</h3>
                     <p class="text-sm text-gray-300 mb-6">Nikmati pengalaman ngopi terbaik hari ini.</p>
 
-                    <!-- TOMBOL PINDAH HALAMAN (Href diarahkan ke file baru) -->
+                    <!-- TOMBOL PINDAH HALAMAN -->
                     <a href="pilih_series.php" class="block w-full bg-[#C69C6D] hover:bg-[#b0885e] text-white font-bold py-4 rounded-xl shadow-lg transition duration-300 uppercase tracking-wider">
                         ☕ Buat Pesanan Sekarang
                     </a>

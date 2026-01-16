@@ -1,7 +1,12 @@
 <?php
 // admin/menu/index.php
 include '../Koneksi.php'; 
-
+session_start();
+// Cek Login & Admin
+if (!isset($_SESSION['is_login']) || $_SESSION['role'] !== 'admin') {
+    header("Location: ../../login.php"); // Mundur 2 langkah ke login utama
+    exit;
+}
 // Ambil data produk
 $query = $conn->query("SELECT * FROM products ORDER BY id DESC");
 $menus = $query->fetchAll(PDO::FETCH_ASSOC);

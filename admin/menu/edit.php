@@ -1,6 +1,12 @@
 <?php
 // admin/menu/edit.php
 include '../Koneksi.php';
+session_start();
+// Cek Login & Admin
+if (!isset($_SESSION['is_login']) || $_SESSION['role'] !== 'admin') {
+    header("Location: ../../login.php"); // Mundur 2 langkah ke login utama
+    exit;
+}
 
 // 1. Ambil ID dari URL
 $id = $_GET['id'];
