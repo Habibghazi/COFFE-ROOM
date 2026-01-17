@@ -2,11 +2,13 @@
 // admin/menu/index.php
 include '../Koneksi.php'; 
 session_start();
+
 // Cek Login & Admin
 if (!isset($_SESSION['is_login']) || $_SESSION['role'] !== 'admin') {
-    header("Location: ../../login.php"); // Mundur 2 langkah ke login utama
+    header("Location: ../../login.php");
     exit;
 }
+
 // Ambil data produk
 $query = $conn->query("SELECT * FROM products ORDER BY id DESC");
 $menus = $query->fetchAll(PDO::FETCH_ASSOC);
@@ -23,7 +25,6 @@ try {
 <head>
     <meta charset="UTF-8">
     <title>Produk - Admin Coffee Room</title>
-    <!-- Font Plus Jakarta Sans -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style> 
@@ -33,7 +34,6 @@ try {
 </head>
 <body class="text-slate-800 h-screen flex overflow-hidden">
 
-    <!-- SIDEBAR (Style Modern) -->
     <aside class="w-72 bg-white m-4 rounded-3xl shadow-xl flex flex-col hidden md:flex border border-slate-100">
         <div class="h-24 flex items-center justify-center border-b border-dashed border-slate-200">
             <h1 class="text-2xl font-extrabold tracking-tight text-slate-800">COFFEE<span class="text-amber-600">ROOM.</span></h1>
@@ -47,7 +47,7 @@ try {
                 <span class="font-semibold">Overview</span>
             </a>
 
-            <!-- Produk Aktif (Warna Amber) -->
+            <!-- Produk Aktif -->
             <a href="index.php" class="flex items-center px-4 py-3.5 bg-amber-500 text-white rounded-2xl shadow-lg shadow-amber-200 transition-all transform hover:scale-[1.02]">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                 <span class="font-bold">Produk</span>
@@ -64,10 +64,17 @@ try {
                     </span>
                 <?php endif; ?>
             </a>
+
+            <!-- MEMBER & PROMO (BARU) -->
+            <a href="../member/member_index.php" class="flex items-center px-4 py-3 text-slate-500 hover:bg-slate-50 hover:text-amber-600 rounded-2xl transition-all group">
+                <svg class="w-5 h-5 mr-3 group-hover:scale-110 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <span class="font-semibold">Member & Promo</span>
+            </a>
+
         </nav>
 
         <div class="p-6">
-            <a href="../logout.php" class="flex items-center justify-center w-full py-3 text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-2xl transition">
+            <a href="../admin_logout.php" class="flex items-center justify-center w-full py-3 text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-2xl transition">
                 Logout
             </a>
         </div>
@@ -75,8 +82,6 @@ try {
 
     <!-- KONTEN UTAMA -->
     <main class="flex-1 overflow-y-auto p-4 md:p-8">
-        
-        <!-- HEADER KONTEN -->
         <div class="flex justify-between items-end mb-8 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
             <div>
                 <h2 class="text-2xl font-bold text-slate-800">Daftar Menu</h2>
@@ -91,7 +96,6 @@ try {
             </a>
         </div>
 
-        <!-- TABEL MODERN -->
         <div class="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden">
             <table class="w-full text-left border-collapse">
                 <thead class="bg-slate-50 border-b border-slate-100">
@@ -108,7 +112,6 @@ try {
                         <?php $no = 1; foreach($menus as $m): ?>
                         <tr class="hover:bg-amber-50/50 transition duration-200 group">
                             <td class="py-5 px-6 text-slate-400 font-medium"><?= $no++ ?></td>
-                            
                             <td class="py-5 px-6">
                                 <div class="h-14 w-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-200 group-hover:border-amber-300 transition shadow-sm">
                                     <?php if(!empty($m['image'])): ?>
@@ -118,19 +121,12 @@ try {
                                     <?php endif; ?>
                                 </div>
                             </td>
-                            
                             <td class="py-5 px-6">
                                 <div class="font-bold text-slate-700 text-lg"><?= $m['name'] ?></div>
                                 <div class="text-xs text-slate-400 mt-1 line-clamp-1"><?= $m['description'] ?></div>
-                                <span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500">
-                                    <?= $m['category'] ?? 'General' ?>
-                                </span>
+                                <span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500"><?= $m['category'] ?? 'General' ?></span>
                             </td>
-                            
-                            <td class="py-5 px-6 font-mono font-bold text-amber-600">
-                                Rp <?= number_format($m['price'], 0, ',', '.') ?>
-                            </td>
-                            
+                            <td class="py-5 px-6 font-mono font-bold text-amber-600">Rp <?= number_format($m['price'], 0, ',', '.') ?></td>
                             <td class="py-5 px-6 text-right">
                                 <div class="flex justify-end gap-2">
                                     <a href="edit.php?id=<?= $m['id'] ?>" class="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition">
@@ -144,16 +140,11 @@ try {
                         </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr>
-                            <td colspan="5" class="py-12 text-center text-slate-400 bg-slate-50/50">
-                                Belum ada data menu.
-                            </td>
-                        </tr>
+                        <tr><td colspan="5" class="py-12 text-center text-slate-400 bg-slate-50/50">Belum ada data menu.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
-
     </main>
 
 </body>

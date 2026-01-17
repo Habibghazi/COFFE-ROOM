@@ -8,21 +8,23 @@ if (file_exists('Koneksi.php')) {
     die("Error: File Koneksi.php tidak ditemukan!");
 }
 if (!isset($_SESSION['is_login']) || $_SESSION['role'] !== 'admin') {
-    // Kalau bukan admin, tendang ke halaman login utama
     header("Location: ../login.php");
     exit;
 }
 
-// ... (LOGIC PHP SAMA SEPERTI SEBELUMNYA, TIDAK DIUBAH) ...
-$totalMenu = 0; $totalTransaksi = 0; $omsetHariIni = 0; $totalPending = 0; 
+// Data Default
+$totalMenu = 0; $totalTransaksi = 0; $omsetHariIni = 0; 
+$totalPending = 0; 
 $labelGrafik = []; $dataGrafik = [];
 
 if (isset($conn)) {
     try {
         $totalMenu = $conn->query("SELECT COUNT(*) FROM products")->fetchColumn();
         $totalTransaksi = $conn->query("SELECT COUNT(*) FROM orders")->fetchColumn();
+        
         $sqlToday = "SELECT SUM(total_price) FROM orders WHERE status = 'success' AND DATE(order_date) = CURDATE()";
         $omsetHariIni = $conn->query($sqlToday)->fetchColumn() ?: 0;
+        
         $totalPending = $conn->query("SELECT COUNT(*) FROM orders WHERE status = 'pending'")->fetchColumn();
 
         $sqlGrafik = "SELECT DATE(order_date) as tgl, SUM(total_price) as total FROM orders WHERE status = 'success' GROUP BY DATE(order_date) ORDER BY tgl ASC LIMIT 7";
@@ -40,19 +42,17 @@ if (isset($conn)) {
 <head>
     <meta charset="UTF-8">
     <title>Dashboard Owner</title>
-    <!-- Font Plus Jakarta Sans (Lebih Modern dari Inter) -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style> 
         body { font-family: 'Plus+Jakarta Sans', sans-serif; background-color: #F8FAFC; } 
-        /* Hide Scrollbar */
         ::-webkit-scrollbar { width: 0px; background: transparent; }
     </style>
 </head>
 <body class="text-slate-800 h-screen flex overflow-hidden">
 
-    <!-- SIDEBAR (Modern Style) -->
+    <!-- SIDEBAR -->
     <aside class="w-72 bg-white m-4 rounded-3xl shadow-xl flex flex-col hidden md:flex border border-slate-100">
         <div class="h-24 flex items-center justify-center border-b border-dashed border-slate-200">
             <h1 class="text-2xl font-extrabold tracking-tight text-slate-800">COFFEE<span class="text-amber-600">ROOM.</span></h1>
@@ -61,7 +61,6 @@ if (isset($conn)) {
         <nav class="flex-1 px-6 py-8 space-y-4">
             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest px-2">Menu Utama</p>
             
-            <!-- Home (Active) -->
             <a href="dashboard.php" class="flex items-center px-4 py-3.5 bg-amber-500 text-white rounded-2xl shadow-lg shadow-amber-200 transition-all transform hover:scale-[1.02]">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                 <span class="font-bold">Overview</span>
@@ -83,19 +82,25 @@ if (isset($conn)) {
                     </span>
                 <?php endif; ?>
             </a>
+
+            <!-- LINK BARU: MEMBER & PROMO -->
+            <a href="member/member_index.php" class="flex items-center px-4 py-3 text-slate-500 hover:bg-slate-50 hover:text-amber-600 rounded-2xl transition-all group">
+                <svg class="w-5 h-5 mr-3 group-hover:scale-110 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <span class="font-semibold">Member & Promo</span>
+            </a>
+
         </nav>
 
         <div class="p-6">
-            <a href="logout.php" class="flex items-center justify-center w-full py-3 text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-2xl transition">
+            <a href="admin_logout.php" class="flex items-center justify-center w-full py-3 text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-2xl transition">
                 Logout
             </a>
         </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
+    <!-- KONTEN UTAMA -->
     <main class="flex-1 overflow-y-auto p-4 md:p-8">
         
-        <!-- HEADER -->
         <header class="flex flex-col md:flex-row justify-between items-center mb-10 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
             <div>
                 <h2 class="text-3xl font-bold text-slate-800">Halo, Habib! 👋</h2>
@@ -107,10 +112,8 @@ if (isset($conn)) {
             </div>
         </header>
 
-        <!-- STATS CARDS -->
+        <!-- STATS -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            
-            <!-- Card 1: Omset -->
             <div class="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50 hover:border-amber-100 transition duration-300 group">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-amber-50 text-amber-500 rounded-2xl group-hover:bg-amber-500 group-hover:text-white transition">
@@ -122,7 +125,6 @@ if (isset($conn)) {
                 <p class="text-slate-400 text-sm font-medium">Total Pemasukan</p>
             </div>
 
-            <!-- Card 2: Transaksi -->
             <div class="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50 hover:border-blue-100 transition duration-300 group">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-blue-50 text-blue-500 rounded-2xl group-hover:bg-blue-500 group-hover:text-white transition">
@@ -133,7 +135,6 @@ if (isset($conn)) {
                 <p class="text-slate-400 text-sm font-medium">Total Pesanan Masuk</p>
             </div>
 
-            <!-- Card 3: Menu -->
             <div class="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50 hover:border-purple-100 transition duration-300 group">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-purple-50 text-purple-500 rounded-2xl group-hover:bg-purple-500 group-hover:text-white transition">
@@ -143,7 +144,6 @@ if (isset($conn)) {
                 <h3 class="text-4xl font-bold text-slate-800 mb-1"><?= $totalMenu ?></h3>
                 <p class="text-slate-400 text-sm font-medium">Varian Menu</p>
             </div>
-
         </div>
 
         <!-- GRAFIK -->
@@ -161,9 +161,7 @@ if (isset($conn)) {
 
     </main>
 
-    <!-- Script Jam & Grafik -->
     <script>
-        // JAM DIGITAL
         function updateWaktu() {
             const now = new Date();
             document.getElementById('hariTanggal').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -171,12 +169,9 @@ if (isset($conn)) {
         }
         setInterval(updateWaktu, 1000); updateWaktu();
 
-        // GRAFIK
         const ctx = document.getElementById('salesChart').getContext('2d');
-        
-        // Bikin Gradient Warna biar Keren
         const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(245, 158, 11, 0.2)'); // Amber
+        gradient.addColorStop(0, 'rgba(245, 158, 11, 0.2)');
         gradient.addColorStop(1, 'rgba(245, 158, 11, 0)');
 
         new Chart(ctx, {
@@ -186,15 +181,14 @@ if (isset($conn)) {
                 datasets: [{
                     label: 'Income',
                     data: <?= json_encode($dataGrafik) ?>,
-                    borderColor: '#f59e0b', // Amber-500
+                    borderColor: '#f59e0b',
                     backgroundColor: gradient,
                     borderWidth: 3,
+                    tension: 0.4,
                     pointBackgroundColor: '#fff',
                     pointBorderColor: '#f59e0b',
                     pointRadius: 6,
-                    pointHoverRadius: 8,
-                    fill: true,
-                    tension: 0.4
+                    fill: true
                 }]
             },
             options: {
@@ -202,15 +196,8 @@ if (isset($conn)) {
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { 
-                        beginAtZero: true, 
-                        grid: { borderDash: [4, 4], color: '#f1f5f9' },
-                        ticks: { font: { family: "'Plus Jakarta Sans', sans-serif" } }
-                    },
-                    x: { 
-                        grid: { display: false },
-                        ticks: { font: { family: "'Plus Jakarta Sans', sans-serif" } }
-                    }
+                    y: { beginAtZero: true, grid: { borderDash: [4, 4], color: '#f1f5f9' }, ticks: { font: { family: "'Plus Jakarta Sans', sans-serif" } } },
+                    x: { grid: { display: false }, ticks: { font: { family: "'Plus Jakarta Sans', sans-serif" } } }
                 }
             }
         });

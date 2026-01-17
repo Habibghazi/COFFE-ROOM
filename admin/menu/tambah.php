@@ -1,12 +1,6 @@
 <?php
 // admin/menu/tambah.php
 include '../Koneksi.php';
-session_start();
-// Cek Login & Admin
-if (!isset($_SESSION['is_login']) || $_SESSION['role'] !== 'admin') {
-    header("Location: ../../login.php"); // Mundur 2 langkah ke login utama
-    exit;
-}
 
 if (isset($_POST['simpan'])) {
     $name  = $_POST['name'];

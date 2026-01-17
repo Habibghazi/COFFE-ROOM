@@ -2,21 +2,23 @@
 // admin/transaksi/trindex.php
 include '../Koneksi.php';
 session_start();
-// Cek Login & Admin
+
 if (!isset($_SESSION['is_login']) || $_SESSION['role'] !== 'admin') {
-    header("Location: ../../login.php"); // Mundur 2 langkah ke login utama
+    header("Location: ../../login.php");
     exit;
 }
 
-try {
-    $query = $conn->query("SELECT * FROM orders ORDER BY order_date DESC");
-    $orders = $query->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Hitung Pending untuk Notifikasi
-    $totalPending = $conn->query("SELECT COUNT(*) FROM orders WHERE status = 'pending'")->fetchColumn();
-} catch (Exception $e) {
-    $orders = []; $totalPending = 0;
+$filter = "WHERE DATE(order_date) = CURDATE()"; 
+$judul = "Transaksi Hari Ini";
+if (isset($_GET['tampil']) && $_GET['tampil'] == 'semua') {
+    $filter = ""; $judul = "Semua Riwayat Transaksi";
 }
+
+try {
+    $query = $conn->query("SELECT * FROM orders $filter ORDER BY order_date DESC");
+    $orders = $query->fetchAll(PDO::FETCH_ASSOC);
+    $totalPending = $conn->query("SELECT COUNT(*) FROM orders WHERE status = 'pending'")->fetchColumn();
+} catch (Exception $e) { $orders = []; $totalPending = 0; }
 
 if (isset($_GET['terima'])) {
     $id = $_GET['terima'];
@@ -30,17 +32,12 @@ if (isset($_GET['terima'])) {
 <head>
     <meta charset="UTF-8">
     <title>Transaksi - Admin Coffee Room</title>
-    <!-- Font Plus Jakarta Sans -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <style> 
-        body { font-family: 'Plus+Jakarta Sans', sans-serif; background-color: #F8FAFC; } 
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
-    </style>
+    <style> body { font-family: 'Plus+Jakarta Sans', sans-serif; background-color: #F8FAFC; } ::-webkit-scrollbar { width: 0px; background: transparent; } </style>
 </head>
 <body class="text-slate-800 h-screen flex overflow-hidden">
 
-    <!-- SIDEBAR (Modern) -->
     <aside class="w-72 bg-white m-4 rounded-3xl shadow-xl flex flex-col hidden md:flex border border-slate-100">
         <div class="h-24 flex items-center justify-center border-b border-dashed border-slate-200">
             <h1 class="text-2xl font-extrabold tracking-tight text-slate-800">COFFEE<span class="text-amber-600">ROOM.</span></h1>
@@ -66,34 +63,35 @@ if (isset($_GET['terima'])) {
                     <span class="font-bold">Transaksi</span>
                 </div>
                 <?php if($totalPending > 0): ?>
-                    <span class="bg-white text-amber-600 text-[10px] font-bold px-2 py-1 rounded-full shadow animate-pulse">
-                        <?= $totalPending ?>
-                    </span>
+                    <span class="bg-white text-amber-600 text-[10px] font-bold px-2 py-1 rounded-full shadow animate-pulse"><?= $totalPending ?></span>
                 <?php endif; ?>
+            </a>
+
+            <!-- MEMBER & PROMO (BARU) -->
+            <a href="../member/member_index.php" class="flex items-center px-4 py-3 text-slate-500 hover:bg-slate-50 hover:text-amber-600 rounded-2xl transition-all group">
+                <svg class="w-5 h-5 mr-3 group-hover:scale-110 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <span class="font-semibold">Member & Promo</span>
             </a>
         </nav>
 
         <div class="p-6">
-            <a href="../logout.php" class="flex items-center justify-center w-full py-3 text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-2xl transition">
-                Logout
-            </a>
+            <a href="../admin_logout.php" class="flex items-center justify-center w-full py-3 text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-2xl transition">Logout</a>
         </div>
     </aside>
 
     <!-- KONTEN UTAMA -->
     <main class="flex-1 overflow-y-auto p-4 md:p-8">
-        
         <div class="flex justify-between items-end mb-8 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
             <div>
-                <h2 class="text-2xl font-bold text-slate-800">Pesanan Masuk</h2>
-                <p class="text-slate-400 text-sm mt-1">Pantau orderan dari pelanggan secara real-time.</p>
+                <h2 class="text-2xl font-bold text-slate-800"><?= $judul ?></h2>
+                <p class="text-slate-400 text-sm mt-1"><?= ($filter != "") ? 'Data otomatis di-reset jam 00:00.' : 'Menampilkan seluruh riwayat penjualan.' ?></p>
             </div>
-            <div class="bg-slate-50 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 border border-slate-100">
-                Total: <span class="text-amber-600"><?= count($orders) ?></span> Order
+            <div class="bg-slate-50 p-1 rounded-xl flex gap-1 border border-slate-100">
+                <a href="trindex.php" class="px-4 py-2 rounded-lg text-sm font-bold transition <?= ($filter != "") ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-400 hover:text-slate-600' ?>">Hari Ini</a>
+                <a href="trindex.php?tampil=semua" class="px-4 py-2 rounded-lg text-sm font-bold transition <?= ($filter == "") ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-400 hover:text-slate-600' ?>">Semua</a>
             </div>
         </div>
 
-        <!-- Tabel Modern -->
         <div class="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden">
             <table class="w-full text-left border-collapse">
                 <thead class="bg-slate-50 border-b border-slate-100">
@@ -110,67 +108,33 @@ if (isset($_GET['terima'])) {
                     <?php if(count($orders) > 0): ?>
                         <?php foreach($orders as $o): ?>
                         <tr class="hover:bg-amber-50/50 transition duration-200">
-                            <td class="py-5 px-6 font-mono font-bold text-slate-400 text-sm">
-                                #ORD-<?= str_pad($o['id'], 3, '0', STR_PAD_LEFT) ?>
-                            </td>
-                            
-                            <td class="py-5 px-6">
-                                <div class="font-bold text-slate-700"><?= htmlspecialchars($o['customer_name']) ?></div>
-                            </td>
-                            
-                            <td class="py-5 px-6 font-mono font-bold text-amber-600">
-                                Rp <?= number_format($o['total_price'], 0, ',', '.') ?>
-                            </td>
-                            
-                            <td class="py-5 px-6 text-sm text-slate-500">
-                                <?= date('d M Y, H:i', strtotime($o['order_date'])) ?>
-                            </td>
-                            
+                            <td class="py-5 px-6 font-mono font-bold text-slate-400 text-sm">#ORD-<?= str_pad($o['id'], 3, '0', STR_PAD_LEFT) ?></td>
+                            <td class="py-5 px-6"><div class="font-bold text-slate-700"><?= htmlspecialchars($o['customer_name']) ?></div></td>
+                            <td class="py-5 px-6 font-mono font-bold text-amber-600">Rp <?= number_format($o['total_price'], 0, ',', '.') ?></td>
+                            <td class="py-5 px-6 text-sm text-slate-500"><?= date('d M, H:i', strtotime($o['order_date'])) ?></td>
                             <td class="py-5 px-6">
                                 <?php if($o['status'] == 'pending'): ?>
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200 shadow-sm">
-                                        <span class="w-2 h-2 bg-amber-500 rounded-full mr-2 animate-pulse"></span>
-                                        Menunggu
-                                    </span>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200 shadow-sm"><span class="w-2 h-2 bg-amber-500 rounded-full mr-2 animate-pulse"></span> Menunggu</span>
                                 <?php else: ?>
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-                                        Selesai
-                                    </span>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">Selesai</span>
                                 <?php endif; ?>
                             </td>
-
                             <td class="py-5 px-6 text-right">
                                 <div class="flex justify-end gap-2">
-                                    <!-- TOMBOL CETAK STRUK (ICON PRINTER) -->
-                                    <a href="cetak_struk.php?id=<?= $o['id'] ?>" target="_blank" 
-                                       class="p-2 bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-800 rounded-lg transition" title="Cetak Struk">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                        </svg>
-                                    </a>
-
+                                    <a href="cetak_struk.php?id=<?= $o['id'] ?>" target="_blank" class="p-2 bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-800 rounded-lg transition" title="Cetak Struk"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg></a>
                                     <?php if($o['status'] == 'pending'): ?>
-                                        <a href="trindex.php?terima=<?= $o['id'] ?>" onclick="return confirm('Proses pesanan ini?')" 
-                                           class="inline-block bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2 px-4 rounded-xl shadow-lg transition transform hover:-translate-y-0.5">
-                                            Proses
-                                        </a>
+                                        <a href="trindex.php?terima=<?= $o['id'] ?>" onclick="return confirm('Proses pesanan ini?')" class="inline-block bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2 px-4 rounded-xl shadow-lg transition transform hover:-translate-y-0.5">Proses</a>
                                     <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr>
-                            <td colspan="6" class="py-12 text-center text-slate-400 bg-slate-50/50">
-                                Belum ada pesanan masuk hari ini.
-                            </td>
-                        </tr>
+                        <tr><td colspan="6" class="py-12 text-center text-slate-400 bg-slate-50/50">Belum ada pesanan hari ini.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
-
     </main>
 </body>
 </html>
