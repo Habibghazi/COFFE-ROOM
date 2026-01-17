@@ -17,6 +17,17 @@ if ($_SESSION['role'] == 'admin') {
 // 3. Hubungkan Database
 include 'admin/Koneksi.php';
 
+// --- TAMBAHAN FITUR CLOSE TOKO ---
+// Ambil status toko dari database
+$shopStatus = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'shop_status'")->fetchColumn();
+
+// Jika statusnya closed, lempar ke halaman tutup.php
+if ($shopStatus == 'closed') {
+    header("Location: tutup.php");
+    exit;
+}
+// --------------------------------
+
 // 4. AMBIL VOUCHER TERBARU UNTUK USER INI
 $idUser = $_SESSION['user_id'];
 $voucherTerbaru = null;
@@ -105,7 +116,7 @@ try {
             </h1>
             
 
-            <!-- BANNER PROMO (MENGAMBIL DARI TABEL USER_VOUCHERS) -->
+            <!-- BANNER PROMO -->
             <?php if($voucherTerbaru): ?>
             <div class="fade-in-up delay-300 mb-8">
                 <div class="inline-flex items-center gap-3 bg-gradient-to-r from-emerald-900/60 to-green-900/60 border border-emerald-500 p-3 rounded-2xl shadow-[0_0_20px_rgba(16,185,129,0.3)] backdrop-blur-md transform hover:scale-105 transition duration-300 cursor-pointer animate-pulse">

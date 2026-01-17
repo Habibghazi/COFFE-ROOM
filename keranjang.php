@@ -1,5 +1,5 @@
 <?php
-// keranjang.php (VERSI CUSTOM NAMA VOUCHER)
+// keranjang.php
 session_start();
 include 'admin/Koneksi.php';
 
@@ -8,12 +8,7 @@ if (!isset($_SESSION['is_login'])) { header("Location: login.php"); exit; }
 $idUser = $_SESSION['user_id'];
 $sekarang = date('Y-m-d H:i:s');
 
-// 1. AMBIL POIN USER
-$user = $conn->query("SELECT total_points, voucher_unlock_date FROM users WHERE id = $idUser")->fetch();
-$totalRiwayatItem = $user['total_points'] ?? 0;
-$tglUnlock = $user['voucher_unlock_date'];
-
-// 2. HITUNG KERANJANG
+// HITUNG KERANJANG
 $subtotal = 0; $totalQty = 0;
 if (isset($_SESSION['keranjang'])) {
     foreach ($_SESSION['keranjang'] as $item) {
@@ -22,10 +17,8 @@ if (isset($_SESSION['keranjang'])) {
     }
 }
 
-// 3. AMBIL LIST VOUCHER YANG TERSEDIA
+// AMBIL LIST VOUCHER YANG TERSEDIA
 $listVoucher = [];
-
-// A. Voucher dari Admin (Tabel user_vouchers)
 try {
     $stmt = $conn->prepare("SELECT * FROM user_vouchers WHERE user_id = :uid AND is_used = 0 AND expired_at > :now");
     $stmt->execute([':uid' => $idUser, ':now' => $sekarang]);
@@ -35,28 +28,14 @@ try {
         $listVoucher[] = [
             'id' => $v['id'],
             'type' => 'admin_db',
-            'nama' => $v['nama_voucher'], // Mengambil nama custom dari Admin
+            'nama' => $v['nama_voucher'],
             'nilai' => $v['diskon'],
-            'warna' => 'emerald' // Warna Hijau untuk Voucher Admin
+            'warna' => 'emerald'
         ];
     }
 } catch (Exception $e) { }
 
-// B. Voucher Poin
-if ($totalRiwayatItem >= 15 && $tglUnlock != NULL) {
-    $tglBatas = date('Y-m-d', strtotime($tglUnlock . ' + 4 days'));
-    if (date('Y-m-d') <= $tglBatas && $totalQty >= 5) {
-        $listVoucher[] = [
-            'id' => 'poin',
-            'type' => 'poin',
-            'nama' => "Reward Poin (Eksklusif)",
-            'nilai' => 50,
-            'warna' => 'amber' // Warna Emas untuk Voucher Poin
-        ];
-    }
-}
-
-// 4. PROSES PILIH VOUCHER
+// PROSES PILIH VOUCHER
 $diskonRupiah = 0;
 $voucherDipilihID = $_SESSION['voucher_dipakai']['id'] ?? "";
 
@@ -65,37 +44,25 @@ if (isset($_POST['pilih_voucher'])) {
     $persen = $_POST['persen'];
     $tipe = $_POST['tipe_voucher'];
     
-    // Hitung Diskon
     $diskonRupiah = $subtotal * ($persen / 100);
     
-    // Simpan ke Session
     $_SESSION['diskon_aktif'] = $diskonRupiah;
-    $_SESSION['voucher_dipakai'] = [
-        'id' => $idVoc,
-        'type' => $tipe,
-        'persen' => $persen
-    ];
-    
+    $_SESSION['voucher_dipakai'] = ['id' => $idVoc, 'type' => $tipe, 'persen' => $persen];
     $voucherDipilihID = $idVoc;
 } else if (isset($_SESSION['diskon_aktif'])) {
-    // Re-kalkulasi diskon jika keranjang berubah tapi voucher masih aktif
     $diskonRupiah = $_SESSION['diskon_aktif'];
 }
 
 $totalBayar = max(0, $subtotal - $diskonRupiah);
 
-// Hapus Item
 if (isset($_GET['hapus'])) {
     $idHapus = $_GET['hapus'];
     unset($_SESSION['keranjang'][$idHapus]);
     $_SESSION['keranjang'] = array_values($_SESSION['keranjang']);
-    
-    // Reset diskon jika keranjang kosong
     if(empty($_SESSION['keranjang'])) {
         unset($_SESSION['diskon_aktif']);
         unset($_SESSION['voucher_dipakai']);
     }
-    
     header("Location: keranjang.php");
     exit;
 }
@@ -125,20 +92,7 @@ if (isset($_GET['hapus'])) {
                 
                 <!-- LIST ITEM (KIRI) -->
                 <div class="md:col-span-2 space-y-4">
-                    <!-- Info Member -->
-                    <div class="bg-gray-800/50 p-4 rounded-2xl mb-6 border border-gray-700/50">
-                        <div class="flex items-center gap-2 mb-3">
-                            <span class="text-xl">🎁</span>
-                            <h4 class="font-bold text-[#C69C6D]">Info Poin Kamu</h4>
-                        </div>
-                        <div class="text-sm text-gray-300 flex justify-between mb-2">
-                            <span>Progres Voucher Gratis:</span>
-                            <span class="font-bold text-white"><?= $totalRiwayatItem ?> <span class="text-gray-500">/ 15 Item</span></span>
-                        </div>
-                        <div class="w-full bg-gray-900 rounded-full h-3 border border-gray-700">
-                            <div class="bg-gradient-to-r from-[#C69C6D] to-[#e3bc8e] h-full rounded-full transition-all duration-1000" style="width: <?= min(100, ($totalRiwayatItem/15)*100) ?>%"></div>
-                        </div>
-                    </div>
+                    <!-- BAGIAN INFO POIN SUDAH DIHAPUS DARI SINI -->
 
                     <?php foreach ($_SESSION['keranjang'] as $key => $item): ?>
                     <div class="bg-[#1a1a1a] p-5 rounded-2xl flex items-center justify-between border border-gray-800 hover:border-gray-700 transition">
@@ -169,15 +123,11 @@ if (isset($_GET['hapus'])) {
                         Ringkasan Pesanan
                     </h3>
                     
-                    <!-- PILIH VOUCHER -->
                     <h4 class="text-[10px] font-bold text-gray-500 mb-3 uppercase tracking-[0.2em]">Voucher Tersedia</h4>
                     
                     <?php if(count($listVoucher) > 0): ?>
                         <div class="space-y-3 mb-6">
-                            <?php foreach($listVoucher as $voc): 
-                                $isPoin = ($voc['warna'] == 'amber');
-                                $colorClass = $isPoin ? 'amber' : 'emerald';
-                            ?>
+                            <?php foreach($listVoucher as $voc): ?>
                                 <form method="POST">
                                     <input type="hidden" name="id_voucher" value="<?= $voc['id'] ?>">
                                     <input type="hidden" name="tipe_voucher" value="<?= $voc['type'] ?>">
@@ -186,20 +136,16 @@ if (isset($_GET['hapus'])) {
                                     <button type="submit" name="pilih_voucher" class="w-full text-left group">
                                         <div class="relative overflow-hidden border transition-all duration-300 rounded-xl p-4 
                                             <?= ($voucherDipilihID == $voc['id']) 
-                                                ? "border-$colorClass-500 bg-$colorClass-500/10 shadow-[0_0_15px_rgba(16,185,129,0.1)]" 
+                                                ? "border-emerald-500 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.1)]" 
                                                 : "border-gray-800 bg-gray-900/50 hover:border-gray-600" ?>">
                                             
                                             <div class="flex justify-between items-center relative z-10">
                                                 <div>
-                                                    <p class="text-<?= $colorClass ?>-400 font-extrabold text-sm uppercase tracking-tight">
-                                                        <?= $voc['nama'] ?> <!-- INI NAMA CUSTOM DARI ADMIN -->
-                                                    </p>
-                                                    <p class="text-[10px] <?= ($voucherDipilihID == $voc['id']) ? "text-$colorClass-300" : "text-gray-500" ?> mt-1">
-                                                        Potongan sebesar <?= $voc['nilai'] ?>%
-                                                    </p>
+                                                    <p class="text-emerald-400 font-extrabold text-sm uppercase tracking-tight"><?= $voc['nama'] ?></p>
+                                                    <p class="text-[10px] <?= ($voucherDipilihID == $voc['id']) ? "text-emerald-300" : "text-gray-500" ?> mt-1">Potongan sebesar <?= $voc['nilai'] ?>%</p>
                                                 </div>
                                                 <?php if($voucherDipilihID == $voc['id']): ?>
-                                                    <span class="bg-<?= $colorClass ?>-500 text-black rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold italic">YEP</span>
+                                                    <span class="bg-emerald-500 text-black rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold italic">YEP</span>
                                                 <?php endif; ?>
                                             </div>
                                         </div>
@@ -237,7 +183,6 @@ if (isset($_GET['hapus'])) {
             <div class="text-center py-24 bg-[#1a1a1a] rounded-3xl border border-dashed border-gray-800">
                 <div class="text-6xl mb-4">🛒</div>
                 <h2 class="text-2xl font-bold text-gray-400 mb-2">Keranjangmu Kosong</h2>
-                <p class="text-gray-600 mb-8">Sepertinya kamu belum memilih kopi hari ini.</p>
                 <a href="csindex.php" class="inline-block bg-[#C69C6D] text-black px-10 py-3 rounded-xl font-bold hover:bg-white transition-all">Mulai Belanja</a>
             </div>
         <?php endif; ?>

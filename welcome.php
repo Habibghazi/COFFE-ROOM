@@ -1,3 +1,14 @@
+<?php
+include 'admin/Koneksi.php';
+
+// CEK STATUS TOKO
+$shopStatus = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'shop_status'")->fetchColumn();
+
+if ($shopStatus == 'closed') {
+    header("Location: tutup.php");
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>

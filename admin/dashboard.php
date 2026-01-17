@@ -11,6 +11,15 @@ if (!isset($_SESSION['is_login']) || $_SESSION['role'] !== 'admin') {
     header("Location: ../login.php");
     exit;
 }
+// Logic Ubah Status Toko
+if (isset($_POST['toggle_status'])) {
+    $currentStatus = $_POST['current_status'];
+    $newStatus = ($currentStatus == 'open') ? 'closed' : 'open';
+    $conn->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = 'shop_status'")->execute([$newStatus]);
+}
+
+// Ambil status toko saat ini
+$shopStatus = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'shop_status'")->fetchColumn();
 
 // Data Default
 $totalMenu = 0; $totalTransaksi = 0; $omsetHariIni = 0; 
@@ -41,12 +50,12 @@ if (isset($conn)) {
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Owner</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Dashboard Owner - Coffee Room</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style> 
-        body { font-family: 'Plus+Jakarta Sans', sans-serif; background-color: #F8FAFC; } 
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; } 
         ::-webkit-scrollbar { width: 0px; background: transparent; }
     </style>
 </head>
@@ -83,12 +92,10 @@ if (isset($conn)) {
                 <?php endif; ?>
             </a>
 
-            <!-- LINK BARU: MEMBER & PROMO -->
             <a href="member/member_index.php" class="flex items-center px-4 py-3 text-slate-500 hover:bg-slate-50 hover:text-amber-600 rounded-2xl transition-all group">
                 <svg class="w-5 h-5 mr-3 group-hover:scale-110 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                 <span class="font-semibold">Member & Promo</span>
             </a>
-
         </nav>
 
         <div class="p-6">
@@ -101,58 +108,89 @@ if (isset($conn)) {
     <!-- KONTEN UTAMA -->
     <main class="flex-1 overflow-y-auto p-4 md:p-8">
         
-        <header class="flex flex-col md:flex-row justify-between items-center mb-10 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-            <div>
-                <h2 class="text-3xl font-bold text-slate-800">Halo, Habib! 👋</h2>
-                <p class="text-slate-400 mt-1">Ini ringkasan bisnismu hari ini.</p>
+        <!-- MODERN HEADER WITH SHOP STATUS -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 gap-6">
+            <div class="flex flex-col gap-2">
+                <div class="flex items-center gap-3">
+                    <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Halo, Habib! 👋</h2>
+                    
+                    <!-- Lampu Indikator Status Toko -->
+                    <div class="flex items-center gap-2 px-3 py-1.5 rounded-full <?php echo ($shopStatus == 'open') ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100'; ?> border">
+                        <span class="relative flex h-2 w-2">
+                            <?php if($shopStatus == 'open'): ?>
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <?php endif; ?>
+                            <span class="relative inline-flex rounded-full h-2 w-2 <?php echo ($shopStatus == 'open') ? 'bg-green-500' : 'bg-red-500'; ?>"></span>
+                        </span>
+                        <span class="text-[10px] font-black uppercase tracking-widest">
+                            <?php echo ($shopStatus == 'open') ? 'OPEN' : 'CLOSED'; ?>
+                        </span>
+                    </div>
+                </div>
+                <p class="text-slate-400 font-medium">Ini ringkasan bisnismu hari ini.</p>
+
+                <!-- Modern Saklar Toggle -->
+                <div class="mt-4 flex items-center gap-4 bg-slate-50 p-3 pr-5 rounded-2xl border border-slate-100 w-fit">
+                    <form method="POST">
+                        <input type="hidden" name="current_status" value="<?= $shopStatus ?>">
+                        <button type="submit" name="toggle_status" class="relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 focus:outline-none <?php echo ($shopStatus == 'open') ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 'bg-slate-300'; ?>">
+                            <span class="inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300 shadow-sm <?php echo ($shopStatus == 'open') ? 'translate-x-6' : 'translate-x-1'; ?>"></span>
+                        </button>
+                    </form>
+                    <div class="leading-none">
+                        <p class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">Operasional</p>
+                        <p class="text-xs font-bold text-slate-700 mt-0.5"><?php echo ($shopStatus == 'open') ? 'Klik untuk Tutup' : 'Klik untuk Buka'; ?></p>
+                    </div>
+                </div>
             </div>
+
             <div class="mt-4 md:mt-0 text-right">
-                <div id="hariTanggal" class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1"></div>
-                <div id="jamDigital" class="text-4xl font-mono font-bold text-amber-500"></div>
+                <div id="hariTanggal" class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1"></div>
+                <div id="jamDigital" class="text-5xl font-mono font-black text-slate-800"></div>
             </div>
         </header>
 
-        <!-- STATS -->
+        <!-- STATS GRID -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50 hover:border-amber-100 transition duration-300 group">
+            <div class="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-slate-50 hover:border-amber-100 transition duration-300 group">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-amber-50 text-amber-500 rounded-2xl group-hover:bg-amber-500 group-hover:text-white transition">
                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </div>
-                    <span class="text-xs font-bold text-green-500 bg-green-50 px-2 py-1 rounded-lg">Hari Ini</span>
+                    <span class="text-[10px] font-black text-green-500 bg-green-50 px-2 py-1 rounded-lg uppercase">Success</span>
                 </div>
-                <h3 class="text-4xl font-bold text-slate-800 mb-1">Rp <?= number_format($omsetHariIni, 0, ',', '.') ?></h3>
-                <p class="text-slate-400 text-sm font-medium">Total Pemasukan</p>
+                <h3 class="text-4xl font-black text-slate-800 mb-1 tracking-tight">Rp <?= number_format($omsetHariIni, 0, ',', '.') ?></h3>
+                <p class="text-slate-400 text-sm font-semibold uppercase tracking-widest text-[10px]">Pemasukan Hari Ini</p>
             </div>
 
-            <div class="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50 hover:border-blue-100 transition duration-300 group">
+            <div class="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-slate-50 hover:border-blue-100 transition duration-300 group">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-blue-50 text-blue-500 rounded-2xl group-hover:bg-blue-500 group-hover:text-white transition">
                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                     </div>
                 </div>
-                <h3 class="text-4xl font-bold text-slate-800 mb-1"><?= $totalTransaksi ?></h3>
-                <p class="text-slate-400 text-sm font-medium">Total Pesanan Masuk</p>
+                <h3 class="text-4xl font-black text-slate-800 mb-1 tracking-tight"><?= $totalTransaksi ?></h3>
+                <p class="text-slate-400 text-sm font-semibold uppercase tracking-widest text-[10px]">Total Pesanan</p>
             </div>
 
-            <div class="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50 hover:border-purple-100 transition duration-300 group">
+            <div class="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-slate-50 hover:border-purple-100 transition duration-300 group">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-purple-50 text-purple-500 rounded-2xl group-hover:bg-purple-500 group-hover:text-white transition">
                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                     </div>
                 </div>
-                <h3 class="text-4xl font-bold text-slate-800 mb-1"><?= $totalMenu ?></h3>
-                <p class="text-slate-400 text-sm font-medium">Varian Menu</p>
+                <h3 class="text-4xl font-black text-slate-800 mb-1 tracking-tight"><?= $totalMenu ?></h3>
+                <p class="text-slate-400 text-sm font-semibold uppercase tracking-widest text-[10px]">Varian Menu</p>
             </div>
         </div>
 
         <!-- GRAFIK -->
         <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold text-slate-800">Analisis Penjualan</h3>
-                <select class="text-sm border-none bg-slate-50 rounded-lg px-3 py-1 text-slate-500 font-bold focus:ring-0">
-                    <option>7 Hari Terakhir</option>
-                </select>
+                <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Analisis Penjualan</h3>
+                <div class="text-[10px] font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-full uppercase tracking-widest">
+                    7 Hari Terakhir
+                </div>
             </div>
             <div class="relative h-80 w-full">
                 <canvas id="salesChart"></canvas>
